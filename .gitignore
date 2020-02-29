@@ -1,5 +1,9 @@
+# venv folders/files
 Include/
 Lib/
-Sample/
 Scripts/
 pyvenv.cfg
+
+# execuation redundent 
+Sample/
+LOG/
