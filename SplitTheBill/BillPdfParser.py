@@ -3,6 +3,8 @@ import re
 from typing import List, Match
 import os
 import datetime
+import sys
+a = sys.executable
 
 class Logger(object):
     def __init__(self, logPath, isActive=True):
@@ -14,7 +16,6 @@ class Logger(object):
             print(msg)
 
 LOG_PATH = os.path.abspath("Log/" + "log_{}.txt".format(datetime.datetime.now))
-SAMPLE_PATH = os.path.abspath("Sample")
 _logger = Logger(LOG_PATH, True)
 
 class Configuration(object):
@@ -28,6 +29,7 @@ class Configuration(object):
         self.feePattern = re.compile(r"^\$[0-9]*\.[0-9]*$", re.M)
         self.totalFeePattern = re.compile(r"^Monthly charges$", re.M)
         self.dataUsagePattern = re.compile(r"^[0-9]*\.[0-9]*$", re.M)
+        self.wifiFeePattern = re.compile(r"^\$1[0-9]{2}\.[0-9]*$")
 
 class Bill(object):
     def __init(self, countOfDevice, devices, totalFee, dataFee, individualDataUsages, individualBaseFees):
@@ -87,7 +89,11 @@ class Parser(object):
         # get total wifi fee and individual baseFees
         bill.devices: List[str] = re.findall(self.config.phonePattern, text)
         a: List[Match[str]] = list(re.finditer(self.config.startPattern_individualFee, text))
+        # find the individual fee section
         individualFeeSection: str = text[a[0].end():a[1].start()]
+        if len(re.findall(self.config.feePattern, individualFeeSection)) <= bill.countOfDevice:
+            individualFeeSection = text[a[1].end():]
+        
         individualFees: List[str] = re.findall(self.config.feePattern, individualFeeSection)
         bill.dataFee, bill.individualBaseFees = individualFees[0], individualFees[1:bill.countOfDevice + 1]
 
@@ -109,15 +115,3 @@ class Parser(object):
             raise Exception("Invalid bill info extraction!")
 
 
-if __name__ == "__main__":
-    f = []
-    for (dirpath, dirnames, filenames) in os.walk(SAMPLE_PATH):
-        f.extend(filenames)
-        break
-
-    for filename in f:
-        # filename = "ATT_188097522906_20190914.pdf"
-        patternConfig = Configuration()
-        parser = Parser(filename, patternConfig)
-        bill: Bill = parser.extractInfo()
-        print(bill.toText())
