@@ -3,7 +3,7 @@ Include/
 Lib/
 Scripts/
 pyvenv.cfg
-.pyc
+*.pyc
 
 # execuation redundent 
 Sample/

@@ -29,16 +29,22 @@ class Configuration(object):
         self.feePattern = re.compile(r"^\$[0-9]*\.[0-9]*$", re.M)
         self.totalFeePattern = re.compile(r"^Monthly charges$", re.M)
         self.dataUsagePattern = re.compile(r"^[0-9]*\.[0-9]*$", re.M)
+        self.rollOverDataFromLastMonth = re.compile(r"^\*Rollover available through [a-zA-Z0-9 ]*: ([0-9]*\.[0-9]*)GB", re.M)
+
+        # not used
         self.wifiFeePattern = re.compile(r"^\$1[0-9]{2}\.[0-9]*$")
 
 class Bill(object):
-    def __init(self, countOfDevice, devices, totalFee, dataFee, individualDataUsages, individualBaseFees):
+    def __init__(self, countOfDevice, devices, totalFee, dataFee, individualDataUsages, individualBaseFees, rollOverDataFromLastMonth):
         self.countOfDevice = countOfDevice
         self.devices = devices
         self.totalFee = totalFee
         self.dataFee = dataFee
         self.individualDataUsage = individualDataUsages
         self.individualBaseFees = individualBaseFees
+        self.rollOverDataFromLastMonth = rollOverDataFromLastMonth 
+        self.totalData = 15
+        self.dataExtraUnitFee = 15
         assert(self.isValid())
     
     def isValid(self):
@@ -102,6 +108,9 @@ class Parser(object):
         totalFeeSection: str = text[:endIndex_TotalFee]
         fees: List[str] = re.findall(self.config.feePattern, totalFeeSection)
         bill.totalFee: str = fees[-1]
+
+        # get roll over data from last month
+        bill.rollOverDataFromLastMonth: str = re.findall(self.config.rollOverDataFromLastMonth, text)[0]
 
         # get individual data usage
         bill.individualDataUsage: List[str] = re.findall(self.config.dataUsagePattern, text)[:bill.countOfDevice]
