@@ -3,6 +3,8 @@ from BillPdfParser import Bill
 class Splitter(object):
     def __init__(self, bill: Bill):
         self.bill = bill
+        self.bill.toValue()
+        print(self.bill.toText())
     
     def split(self):
         totals = [0] * self.bill.countOfDevice
@@ -11,11 +13,11 @@ class Splitter(object):
         # data extra fees
         dataExtraFees: List[float] = None
         totalData = self.bill.rollOverDataFromLastMonth + self.bill.totalData 
-        extraData = sum(self.bill.individualDataUsage) - totalData
+        extraData = sum(self.bill.individualDataUsages) - totalData
 
         if extraData > 0:
             dataAvg = totalData /self.bill.countOfDevice
-            dataExtraUsages = [(i - dataAvg) if i > dataAvg else 0 for i in self.bill.individualDataUsage]
+            dataExtraUsages = [(i - dataAvg) if i > dataAvg else 0 for i in self.bill.individualDataUsages]
             dataExtraProportions = [i / sum(dataExtraUsages) for i in dataExtraUsages]
             dataExtraFees = [i * self.bill.dataExtraUnitFee * extraData for i in dataExtraProportions]
         else:

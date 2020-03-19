@@ -35,20 +35,21 @@ class Configuration(object):
         self.wifiFeePattern = re.compile(r"^\$1[0-9]{2}\.[0-9]*$")
 
 class Bill(object):
-    def __init__(self, countOfDevice, devices, totalFee, dataFee, individualDataUsages, individualBaseFees, rollOverDataFromLastMonth):
+    def __init__(self, countOfDevice=0, devices=None, totalFee=None, dataFee=None, 
+                    individualDataUsages=[], individualBaseFees=[], rollOverDataFromLastMonth=None):
         self.countOfDevice = countOfDevice
         self.devices = devices
         self.totalFee = totalFee
         self.dataFee = dataFee
-        self.individualDataUsage = individualDataUsages
+        self.individualDataUsages = individualDataUsages
         self.individualBaseFees = individualBaseFees
         self.rollOverDataFromLastMonth = rollOverDataFromLastMonth 
-        self.totalData = 15
+        self.totalData = 30
         self.dataExtraUnitFee = 15
         assert(self.isValid())
     
     def isValid(self):
-        return (self.countOfDevice == len(self.individualBaseFees) == len(self.individualDataUsage))
+        return (self.countOfDevice == len(self.individualBaseFees) == len(self.individualDataUsages))
 
     def toText(self):
         res = """
@@ -56,15 +57,32 @@ class Bill(object):
         Devices = {}
         WifiFee = {}
         IndividualBaseFees = {}
-        IndividualWifeUsages = {}
+        IndividualWifeUsages = {},
+        RollOverDataFromLastMonth = {},
+        TotalDataForNewMonth = {},
+        ExtraUnitDataFee = {}
         Total Fee = {}
         """.format(self.countOfDevice,
                     self.devices,
                     self.dataFee,
                     self.individualBaseFees,
-                    self.individualDataUsage,
+                    self.individualDataUsages,
+                    self.rollOverDataFromLastMonth,
+                    self.totalData,
+                    self.dataExtraUnitFee,
                     self.totalFee)
         return res
+
+    def toValue(self):
+        floatPattern = re.compile(r"[0-9]*\.[0-9]*$", re.M)
+        if type(self.countOfDevice) == str: self.countOfDevice = int(self.countOfDevice)
+        self.devices = self.devices
+        if type(self.totalFee) == str: self.totalFee = float(floatPattern.search(self.totalFee).group())
+        if type(self.dataFee) == str: self.dataFee = float(floatPattern.search(self.dataFee).group())
+        if type(self.individualDataUsages[0]) == str: self.individualDataUsages = [float(floatPattern.search(fee).group()) for fee in self.individualDataUsages]
+        if type(self.individualBaseFees[0]) == str: self.individualBaseFees = [float(floatPattern.search(fee).group()) for fee in self.individualBaseFees]
+        if type(self.rollOverDataFromLastMonth) == str: self.rollOverDataFromLastMonth = float(self.rollOverDataFromLastMonth)
+
 
 class Parser(object):
     def _tryReadPdfAsText(self, filePath):
@@ -77,9 +95,8 @@ class Parser(object):
             raise ex
         return text
 
-    def __init__(self, filename: str, config: Configuration):
+    def __init__(self, filePath: str, config: Configuration):
         self.config = config
-        filePath = os.path.abspath("Sample/" + filename) # "ATT_188097522906_20190914.pdf")
         self.wholeText: str = self._tryReadPdfAsText(filePath)
 
     def extractInfo(self) -> Bill:
@@ -113,7 +130,7 @@ class Parser(object):
         bill.rollOverDataFromLastMonth: str = re.findall(self.config.rollOverDataFromLastMonth, text)[0]
 
         # get individual data usage
-        bill.individualDataUsage: List[str] = re.findall(self.config.dataUsagePattern, text)[:bill.countOfDevice]
+        bill.individualDataUsages: List[str] = re.findall(self.config.dataUsagePattern, text)[:bill.countOfDevice]
 
         _logger.log(bill.toText())
 
